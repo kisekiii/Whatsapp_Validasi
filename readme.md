@@ -52,7 +52,7 @@ Aplikasi web sederhana berbasis HTML, CSS, JavaScript, dan Node.js untuk melakuk
 
 3. Buka browser dan akses:
    ```
-   http://localhost:3000
+   http://localhost:3001
    ```
 
 4. Atau buka langsung file `public/index.html` untuk versi tanpa server.
