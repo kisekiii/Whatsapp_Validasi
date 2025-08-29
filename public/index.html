@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Validasi Nomor WhatsApp - Bulk</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f6f8;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .box {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+      flex: 1 1 300px;
+      min-width: 280px;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+    }
+
+    .box h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 5px;
+      color: #007bff;
+    }
+
+    #bulkInput {
+      flex-grow: 1;
+      resize: vertical;
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      min-height: 200px;
+      margin-bottom: 10px;
+      font-family: monospace;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 15px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
+    .result-list {
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+      border-radius: 5px;
+      flex-grow: 1;
+      background: #fafafa;
+    }
+
+    .valid {
+      color: green;
+      margin-bottom: 4px;
+    }
+    .invalid {
+      color: red;
+      margin-bottom: 4px;
+    }
+
+    .error-message {
+      color: red;
+      margin-bottom: 8px;
+      min-height: 20px;
+      font-weight: bold;
+    }
+
+    #logArea {
+      background: #222;
+      color: #eee;
+      font-family: monospace;
+      font-size: 13px;
+      border-radius: 6px;
+      padding: 10px;
+      height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 5px #000;
+      max-width: 1250px;
+      margin: 0 auto;
+    }
+    
+  </style>
+</head>
+<body>
+
+  <h1>Validasi Nomor WhatsApp - Bulk</h1>
+
+  <div class="container">
+
+    <div class="box" id="inputBox">
+      <h2>Input Bulk Nomor</h2>
+      <textarea id="bulkInput" placeholder="Masukkan nomor satu per baris, tanpa tanda '+' atau spasi. Maksimal 1000 nomor."></textarea>
+      <div class="error-message" id="inputError"></div>
+      <button id="validateBtn">Validasi Nomor</button>
+    </div>
+
+    <div class="box" id="dieBox">
+      <h2>Die / Tidak Terdaftar</h2>
+      <div class="result-list" id="dieList">Belum ada data.</div>
+    </div>
+
+    <div class="box" id="validBox"  >
+        <h2>Terdaftar</h2>
+      <div class="result-list" id="validList" class="validList">Belum ada data.</div>
+      <button onclick="copyResult()" style="margin-top:10px ;">Salin Hasil Terdaftar</button>
+    </div>
+
+  </div>
+   <div id="logArea">Log proses akan muncul di sini...</div>
+
+    <script>
+        const validateBtn = document.getElementById('validateBtn')
+        const bulkInput = document.getElementById('bulkInput')
+        const inputError = document.getElementById('inputError')
+        const dieList = document.getElementById('dieList')
+        const validList = document.getElementById('validList')
+        const logArea = document.getElementById('logArea')
+
+        function log(message) {
+        const time = new Date().toLocaleTimeString()
+        logArea.textContent += `[${time}] ${message}\n`
+        logArea.scrollTop = logArea.scrollHeight
+        }
+
+        validateBtn.addEventListener('click', async () => {
+        inputError.textContent = ''
+        dieList.textContent = 'Belum ada data.'
+        validList.textContent = 'Belum ada data.'
+        logArea.textContent = 'Mulai proses validasi...\n'
+
+        let numbers = bulkInput.value
+            .split('\n')
+            .map(n => n.trim())
+            .filter(n => n !== '')
+
+        if (numbers.length === 0) {
+            inputError.textContent = 'Masukkan minimal satu nomor.'
+            return
+        }
+        if (numbers.length > 1000) {
+            inputError.textContent = 'Maksimal 1000 nomor per validasi.'
+            return
+        }
+
+        for (const num of numbers) {
+            if (!/^\d{8,15}$/.test(num)) {
+            inputError.textContent = `Nomor tidak valid: ${num}`
+            return
+            }
+        }
+
+        validateBtn.disabled = true
+        validateBtn.textContent = 'Memeriksa...'
+
+        dieList.textContent = ''
+        validList.textContent = ''
+
+        const dieNums = []
+        const validNums = []
+        const delay = ms => new Promise(r => setTimeout(r, ms))
+
+        for (let i = 0; i < numbers.length; i++) {
+            const nomor = numbers[i]
+            log(`Memeriksa nomor: ${nomor} ...`)
+            try {
+            const res = await fetch('/validate-bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ numbers: [nomor] })
+            })
+            const data = await res.json()
+            if (res.ok && data.length) {
+                if (data[0].exists) {
+                validNums.push(nomor)
+                log(`✔️ Nomor ${nomor} terdaftar.`)
+                } else {
+                dieNums.push(nomor)
+                log(`❌ Nomor ${nomor} tidak terdaftar.`)
+                }
+            } else {
+                dieNums.push(nomor + ' (error)')
+                log(`⚠️ Nomor ${nomor} error server.`)
+            }
+            } catch (e) {
+            dieNums.push(nomor + ' (gagal koneksi)')
+            log(`⚠️ Nomor ${nomor} gagal koneksi.`)
+            }
+            await delay(200)
+        }
+
+        if (validNums.length) {
+            validList.innerHTML = validNums.map(n => `<div class="valid">${n}</div>`).join('')
+        } else {
+            validList.textContent = 'Tidak ada nomor terdaftar.'
+        }
+
+        if (dieNums.length) {
+            dieList.innerHTML = dieNums.map(n => `<div class="invalid">${n}</div>`).join('')
+        } else {
+            dieList.textContent = 'Tidak ada nomor tidak terdaftar.'
+        }
+
+        log('Proses validasi selesai.')
+        validateBtn.disabled = false
+        validateBtn.textContent = 'Validasi Nomor'
+        })
+  </script>
+<script>
+function copyResult() {
+  const resultEl = document.getElementById('validList');
+  if (!resultEl) {
+    alert('Elemen hasil tidak ditemukan!');
+    return;
+  }
+
+  const textToCopy = resultEl.innerText || resultEl.textContent;
+  
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    alert('Hasil berhasil disalin!');
+  }).catch(() => {
+    alert('Gagal menyalin hasil');
+  });
+}
+
+</script>
+</body>
+</html>

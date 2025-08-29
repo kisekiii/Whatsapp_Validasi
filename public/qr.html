@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Scan QR WhatsApp</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    #qrcode {
+    display: inline-block;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scan QR WhatsApp</h1>
+  <p id="status">Menunggu QR Code...</p>
+  <div id="qrcode"></div>
+
+  <p>Contact Me : <a href="https://wa.me/85578901200" style="text-decoration: none;">My Number</a></p>
+
+  <h2>By 🚀 <a href="https://github.com/kisekiii" style="text-decoration: none;">Kiseki</a></h2>
+
+<script>
+  async function checkStatus() {
+    try {
+      const res = await fetch('/status')
+      const data = await res.json()
+      if (data.connected) {
+        // Sudah terhubung WA, redirect ke validasi
+        window.location.href = '/app/index.html'
+        return
+      }
+    } catch {
+      // ignore error
+    }
+  }
+
+  async function fetchQR() {
+    await checkStatus()
+
+    fetch('/qr')
+      .then(res => res.json())
+      .then(data => {
+        if (data.qr) {
+          document.getElementById('status').innerText = 'Silakan scan QR dengan WhatsApp Anda'
+          document.getElementById('qrcode').innerHTML = ''
+          new QRCode(document.getElementById('qrcode'), {
+            text: data.qr,
+            width: 250,
+            height: 250
+          })
+        } else {
+          document.getElementById('status').innerText = data.message || 'Menunggu QR Code...'
+        }
+      })
+      .catch(() => {
+        document.getElementById('status').innerText = 'Gagal ambil QR'
+      })
+  }
+
+  fetchQR()
+  setInterval(fetchQR, 15000)
+  setInterval(checkStatus, 5000) // cek status tiap 5 detik juga
+</script>
+
+</body>
+</html>
