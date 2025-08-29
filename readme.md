@@ -47,7 +47,7 @@ Aplikasi web sederhana berbasis HTML, CSS, JavaScript, dan Node.js untuk melakuk
 
 2. Jalankan server Node.js (jika menggunakan backend di folder `session/`)
    ```bash
-   node session/index.js
+   node index.js
    ```
 
 3. Buka browser dan akses:
